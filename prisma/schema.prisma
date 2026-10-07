@@ -1,0 +1,193 @@
+// PMI DNA: The Gem Quest — data model.
+//
+// Gem accounting is a ledger: balances are never stored, they are summed from
+// GemEntry (personal wallet) and BankEntry (SFP Bank). Sprint quotas live in
+// Allocation; spending a quota is a Transfer.
+//
+// New participants are added directly in the database (see README).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// role: EXECUTIVE | LEAD | MANAGER | MEMBER
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  title     String?
+  team      String?
+  role      String   @default("MEMBER")
+  isAdmin   Boolean  @default(false)
+  avatarUrl String?
+  active    Boolean  @default(true)
+  managerId String?
+  manager   User?    @relation("Reports", fields: [managerId], references: [id])
+  reports   User[]   @relation("Reports")
+  createdAt DateTime @default(now())
+
+  allocations      Allocation[]
+  sent             Transfer[]        @relation("Sent")
+  received         Transfer[]        @relation("Received")
+  entries          GemEntry[]
+  orders           Order[]
+  sessions         Session[]
+  challengeEntries ChallengeEntry[]
+}
+
+model Sprint {
+  id        String    @id @default(cuid())
+  number    Int       @unique
+  startsAt  DateTime
+  endsAt    DateTime // exclusive: the Monday 00:00 (Kyiv) after the sprint
+  closedAt  DateTime?
+
+  allocations Allocation[]
+  transfers   Transfer[]
+  bankEntries BankEntry[]
+}
+
+/// Gems a user may give away during one sprint. Unused gems burn into the bank.
+model Allocation {
+  id          String @id @default(cuid())
+  sprintId    String
+  sprint      Sprint @relation(fields: [sprintId], references: [id])
+  userId      String
+  user        User   @relation(fields: [userId], references: [id])
+  transparent Int
+  yellow      Int
+
+  @@unique([sprintId, userId])
+}
+
+/// source: TRANSPARENT | YELLOW — which quota was spent
+/// color:  BLUE | PURPLE | GREEN | YELLOW — what the recipient got
+model Transfer {
+  id        String   @id @default(cuid())
+  sprintId  String
+  sprint    Sprint   @relation(fields: [sprintId], references: [id])
+  fromId    String
+  from      User     @relation("Sent", fields: [fromId], references: [id])
+  toId      String
+  to        User     @relation("Received", fields: [toId], references: [id])
+  source    String
+  color     String
+  comment   String
+  createdAt DateTime @default(now())
+
+  @@index([sprintId, fromId])
+  @@index([sprintId, toId])
+  @@index([createdAt])
+}
+
+/// Personal wallet ledger. amount > 0 credits, amount < 0 debits.
+/// kind: TRANSFER | SIGNUP_BONUS | CHALLENGE_PRIZE | PURCHASE | REFUND | ADJUSTMENT
+model GemEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  color     String
+  amount    Int
+  kind      String
+  refId     String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// SFP Bank ledger ("Missed Opportunities"). color also allows TRANSPARENT.
+/// kind: MISSED | CHALLENGE_PRIZE | ADJUSTMENT
+model BankEntry {
+  id        String   @id @default(cuid())
+  sprintId  String?
+  sprint    Sprint?  @relation(fields: [sprintId], references: [id])
+  color     String
+  amount    Int
+  kind      String
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+/// category: EXPERIENCE | IMPACT | MERCH | TIME | OTHER
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  category    String
+  price       Int
+  imageUrl    String?
+  emoji       String?
+  stock       Int? // null = unlimited
+  active      Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  orders      Order[]
+}
+
+/// status: PENDING | FULFILLED | REJECTED
+/// spent: JSON {"BLUE":n,...} — exactly which gems were debited, for refunds.
+model Order {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  price     Int
+  spent     String
+  status    String   @default("PENDING")
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// status: DRAFT | ACTIVE | CLOSED. At most two ACTIVE at a time.
+model Challenge {
+  id          String           @id @default(cuid())
+  title       String
+  description String
+  emoji       String?
+  status      String           @default("DRAFT")
+  startsAt    DateTime?
+  endsAt      DateTime?
+  createdAt   DateTime         @default(now())
+  entries     ChallengeEntry[]
+}
+
+model ChallengeEntry {
+  id          String    @id @default(cuid())
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id])
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  text        String
+  link        String?
+  prizeColor  String?
+  prizeAmount Int?
+  createdAt   DateTime  @default(now())
+
+  @@unique([challengeId, userId])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model LoginToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  email     String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}

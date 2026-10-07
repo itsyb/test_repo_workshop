@@ -1,0 +1,23 @@
+email,name,role,managerEmail,title,team,isAdmin
+olena.kovalenko@example.com,Olena Kovalenko,EXECUTIVE,,Head of Digital,Leadership,true
+andrii.melnyk@example.com,Andrii Melnyk,LEAD,olena.kovalenko@example.com,Engineering Lead,Platform,false
+iryna.shevchenko@example.com,Iryna Shevchenko,LEAD,olena.kovalenko@example.com,Product Lead,Product,false
+taras.bondarenko@example.com,Taras Bondarenko,LEAD,olena.kovalenko@example.com,Marketing Lead,eCRM,false
+mariia.tkachenko@example.com,Mariia Tkachenko,MANAGER,andrii.melnyk@example.com,Engineering Manager,Platform,false
+dmytro.kravets@example.com,Dmytro Kravets,MANAGER,iryna.shevchenko@example.com,Product Manager,Product,false
+sofiia.oliinyk@example.com,Sofiia Oliinyk,MANAGER,taras.bondarenko@example.com,CRM Manager,eCRM,false
+yurii.lysenko@example.com,Yurii Lysenko,MEMBER,mariia.tkachenko@example.com,Senior Backend Engineer,Platform,false
+kateryna.moroz@example.com,Kateryna Moroz,MEMBER,mariia.tkachenko@example.com,Frontend Engineer,Platform,false
+bohdan.savchenko@example.com,Bohdan Savchenko,MEMBER,mariia.tkachenko@example.com,QA Engineer,Platform,false
+anna.pavlenko@example.com,Anna Pavlenko,MEMBER,mariia.tkachenko@example.com,DevOps Engineer,Platform,false
+oleh.rudenko@example.com,Oleh Rudenko,MEMBER,andrii.melnyk@example.com,Solution Architect,Platform,false
+viktoriia.marchenko@example.com,Viktoriia Marchenko,MEMBER,dmytro.kravets@example.com,Product Designer,Product,false
+maksym.honcharenko@example.com,Maksym Honcharenko,MEMBER,dmytro.kravets@example.com,Business Analyst,Product,false
+yuliia.kozak@example.com,Yuliia Kozak,MEMBER,dmytro.kravets@example.com,UX Researcher,Product,false
+serhii.polishchuk@example.com,Serhii Polishchuk,MEMBER,iryna.shevchenko@example.com,Data Analyst,Product,false
+nataliia.boiko@example.com,Nataliia Boiko,MEMBER,sofiia.oliinyk@example.com,CRM Specialist,eCRM,false
+roman.zinchenko@example.com,Roman Zinchenko,MEMBER,sofiia.oliinyk@example.com,Email Developer,eCRM,false
+khrystyna.levchenko@example.com,Khrystyna Levchenko,MEMBER,sofiia.oliinyk@example.com,Content Manager,eCRM,false
+vladyslav.hrytsenko@example.com,Vladyslav Hrytsenko,MEMBER,taras.bondarenko@example.com,Performance Marketer,eCRM,false
+daryna.kushnir@example.com,Daryna Kushnir,MEMBER,taras.bondarenko@example.com,Brand Manager,eCRM,false
+artem.vasylenko@example.com,Artem Vasylenko,MEMBER,olena.kovalenko@example.com,Scrum Master,Leadership,false
