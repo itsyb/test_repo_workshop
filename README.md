@@ -18,6 +18,23 @@ npm run dev                   # http://localhost:3000
 
 Вхід — за посиланням на email. Поки `AUTH_DEV_LINKS="true"`, посилання показується одразу на екрані (лише для локального запуску й демо). Для продакшну вимкніть цей прапорець і задайте `SMTP_URL`.
 
+## Статичне демо (GitHub Pages)
+
+Інтерактивна версія без сервера для швидких показів: **https://itsyb.github.io/test_repo_workshop/**
+
+- Замість входу вибираєте одну з 4 демо-персон: Executive/Admin, Lead, Manager, Member.
+- Дані (22 вигадані учасники, 2 завершені спринти історії, банк, челенджі, замовлення) генеруються і зберігаються **тільки у вашому браузері** (localStorage). У кожного глядача свій незалежний світ; «Reset demo data» в меню аватара починає все заново.
+- Правила ті самі, що й у повній версії: обидві викликають `src/lib/rules.ts`.
+- Демо-учасники задані в `src/demo/fixture.ts` і не пов'язані з `data/users.csv`, тож реальні імена на Pages не потраплять.
+
+Як це влаштовано: `DEMO_STATIC=1` вмикає `output: "export"` і змушує Next.js бачити тільки файли маршрутів `*.demo.tsx` (`src/app/(demo)/…`, `src/app/login/page.demo.tsx`, `src/app/layout.demo.tsx`). Сторінки обох версій рендерять ті самі view з `src/views`; різниться лише джерело даних (Prisma + server actions або `src/demo/engine.ts`).
+
+```bash
+DEMO_BASE_PATH=/test_repo_workshop npm run build:demo   # → out/
+```
+
+Деплой робить `.github/workflows/demo-pages.yml` на кожен пуш. Один раз потрібно ввімкнути: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
 ## Правила програми (реалізовано)
 
 | Правило | Де в коді |
@@ -56,8 +73,9 @@ npm run dev                   # http://localhost:3000
 ## Тести
 
 ```bash
-npm test         # правила спринтів, дарування, банку, магазину, челенджів на тестовій SQLite
+npm test           # правила спринтів, дарування, банку, магазину, челенджів на тестовій SQLite
 npm run typecheck
+npm run build:demo # перевірка статичного демо
 ```
 
 ## Продакшн

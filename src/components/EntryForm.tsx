@@ -3,10 +3,20 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { submitEntryAction } from "@/app/actions";
+import type { ActionResult } from "@/lib/errors";
 import { EASE } from "@/components/motion";
 
-export function EntryForm({ challengeId, initialText, initialLink }: { challengeId: string; initialText: string; initialLink: string }) {
+export function EntryForm({
+  challengeId,
+  initialText,
+  initialLink,
+  submit,
+}: {
+  challengeId: string;
+  initialText: string;
+  initialLink: string;
+  submit: (challengeId: string, text: string, link: string) => Promise<ActionResult>;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState(initialText);
@@ -14,9 +24,9 @@ export function EntryForm({ challengeId, initialText, initialLink }: { challenge
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
 
-  const submit = () =>
+  const send = () =>
     start(async () => {
-      const res = await submitEntryAction(challengeId, text, link);
+      const res = await submit(challengeId, text, link);
       setMsg(res.ok ? { ok: true, text: res.message ?? "Saved" } : { ok: false, text: res.error });
       if (res.ok) {
         setOpen(false);
@@ -51,7 +61,7 @@ export function EntryForm({ challengeId, initialText, initialLink }: { challenge
               />
               <input value={link} onChange={(e) => setLink(e.target.value)} placeholder="Link (optional) — Confluence, Figma, SharePoint…" className="field" aria-label="Link" />
               <div className="flex gap-2">
-                <button className="btn btn-primary" disabled={pending || text.trim().length < 20} onClick={submit}>
+                <button className="btn btn-primary" disabled={pending || text.trim().length < 20} onClick={send}>
                   {pending ? "Saving…" : "Submit entry"}
                 </button>
                 <button className="btn btn-ghost" onClick={() => setOpen(false)}>

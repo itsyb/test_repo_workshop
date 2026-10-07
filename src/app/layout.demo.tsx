@@ -1,12 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Backdrop } from "@/components/Backdrop";
 import { MotionProvider } from "@/components/motion";
+import { DemoProvider } from "@/demo/store";
 import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "Gem Quest",
-  description: "PMI DNA: The Gem Quest — say thank you, every day.",
-};
 
 export const viewport: Viewport = {
   themeColor: "#000000",
@@ -16,12 +12,19 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const metadata: Metadata = {
+  title: "Gem Quest · Demo",
+  description: "Interactive demo of PMI DNA: The Gem Quest — data stays in your browser.",
+};
+
+export default function DemoRootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
         <Backdrop />
-        <MotionProvider>{children}</MotionProvider>
+        <MotionProvider>
+          <DemoProvider>{children}</DemoProvider>
+        </MotionProvider>
       </body>
     </html>
   );

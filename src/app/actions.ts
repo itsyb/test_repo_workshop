@@ -12,7 +12,9 @@ import { purchase, setOrderStatus } from "@/lib/store";
 import { loadFeed, type FeedFilter } from "@/lib/feed";
 import type { Balance, GemSource } from "@/lib/gems";
 
-export type ActionResult = { ok: true; message?: string } | { ok: false; error: string };
+import type { ActionResult } from "@/lib/errors";
+
+export type { ActionResult };
 
 async function run(fn: () => Promise<string | void>): Promise<ActionResult> {
   try {

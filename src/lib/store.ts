@@ -1,7 +1,7 @@
 import { RuleError, type Db } from "./db";
-import { WALLET_COLORS, emptyBalance, isWalletColor, total, type Balance } from "./gems";
+import { WALLET_COLORS, type Balance } from "./gems";
 import { getBalance } from "./ledger";
-import { autoSpend } from "./store-spend";
+import { resolveSpend } from "./rules";
 
 export async function purchase(db: Db, userId: string, productId: string, spendInput?: Partial<Balance>) {
   return db.$transaction(async (tx) => {
@@ -9,22 +9,7 @@ export async function purchase(db: Db, userId: string, productId: string, spendI
     if (!product?.active) throw new RuleError("This reward is no longer available.");
     if (product.stock !== null && product.stock <= 0) throw new RuleError("Out of stock — check back soon.");
 
-    const balance = await getBalance(tx, userId);
-    let spend: Balance | null;
-    if (spendInput) {
-      spend = emptyBalance();
-      for (const [c, n] of Object.entries(spendInput)) {
-        if (!isWalletColor(c) || !Number.isInteger(n) || (n as number) < 0) throw new RuleError("Invalid gem selection.");
-        spend[c] = n as number;
-      }
-      if (total(spend) !== product.price) throw new RuleError(`Select exactly ${product.price} gems.`);
-      for (const c of WALLET_COLORS) {
-        if (spend[c] > balance[c]) throw new RuleError("You don't have enough of those gems.");
-      }
-    } else {
-      spend = autoSpend(balance, product.price);
-      if (!spend) throw new RuleError("Not enough gems yet — keep collecting.");
-    }
+    const spend = resolveSpend(await getBalance(tx, userId), product.price, spendInput);
 
     if (product.stock !== null) {
       const dec = await tx.product.updateMany({
@@ -38,10 +23,10 @@ export async function purchase(db: Db, userId: string, productId: string, spendI
       data: { userId, productId, price: product.price, spent: JSON.stringify(spend) },
     });
     await tx.gemEntry.createMany({
-      data: WALLET_COLORS.filter((c) => spend![c] > 0).map((c) => ({
+      data: WALLET_COLORS.filter((c) => spend[c] > 0).map((c) => ({
         userId,
         color: c,
-        amount: -spend![c],
+        amount: -spend[c],
         kind: "PURCHASE",
         refId: order.id,
         note: product.name,

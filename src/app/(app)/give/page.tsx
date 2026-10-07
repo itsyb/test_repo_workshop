@@ -1,7 +1,8 @@
 import { requireUser } from "@/lib/auth";
 import { quotaFor } from "@/lib/context";
 import { prisma } from "@/lib/db";
-import { GiveFlow } from "./GiveFlow";
+import { giveAction } from "@/app/actions";
+import { GiveFlow } from "@/components/GiveFlow";
 
 export default async function GivePage({ searchParams }: { searchParams: Promise<{ to?: string; type?: string }> }) {
   const user = await requireUser();
@@ -33,6 +34,7 @@ export default async function GivePage({ searchParams }: { searchParams: Promise
       }))}
       initialTo={params.to}
       initialSource={params.type === "YELLOW" ? "YELLOW" : undefined}
+      give={giveAction}
     />
   );
 }

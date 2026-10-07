@@ -2,27 +2,26 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useState, useTransition } from "react";
-import { feedPage } from "@/app/actions";
 import { FeedCard } from "@/components/FeedCard";
 import { Gem } from "@/components/Gem";
 import { EASE } from "@/components/motion";
-import type { FeedItem } from "@/lib/feed";
+import type { FeedFilter, FeedItem } from "@/lib/feed";
 import { GEM_META, WALLET_COLORS } from "@/lib/gems";
 
 type Page = { items: FeedItem[]; nextCursor: string | null };
 
-export function FeedList({ initial, userId }: { initial: Page; userId?: string }) {
+export function FeedList({ initial, userId, load }: { initial: Page; userId?: string; load: (filter: FeedFilter) => Promise<Page> }) {
   const [color, setColor] = useState<string | undefined>();
   const [page, setPage] = useState<Page>(initial);
   const [pending, start] = useTransition();
 
   const filter = (c?: string) => {
     setColor(c);
-    start(async () => setPage(await feedPage({ color: c, userId })));
+    start(async () => setPage(await load({ color: c, userId })));
   };
   const more = () =>
     start(async () => {
-      const next = await feedPage({ color, userId, cursor: page.nextCursor ?? undefined });
+      const next = await load({ color, userId, cursor: page.nextCursor ?? undefined });
       setPage((p) => ({ items: [...p.items, ...next.items], nextCursor: next.nextCursor }));
     });
 

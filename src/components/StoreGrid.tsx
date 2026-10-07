@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { buyAction } from "@/app/actions";
+import type { ActionResult } from "@/lib/errors";
 import { Gem } from "@/components/Gem";
 import { EASE, Spotlight } from "@/components/motion";
 import { Portal } from "@/components/Portal";
@@ -21,7 +21,9 @@ type Product = {
   stock: number | null;
 };
 
-export function StoreGrid({ products, balance }: { products: Product[]; balance: Balance }) {
+type Buy = (productId: string, spend: Partial<Balance>) => Promise<ActionResult>;
+
+export function StoreGrid({ products, balance, buy }: { products: Product[]; balance: Balance; buy: Buy }) {
   const [cat, setCat] = useState<string | null>(null);
   const [open, setOpen] = useState<Product | null>(null);
   const have = total(balance);
@@ -110,13 +112,13 @@ export function StoreGrid({ products, balance }: { products: Product[]; balance:
       {products.length === 0 && <div className="card p-12 text-center text-ink-2">The store opens soon.</div>}
 
       <Portal>
-        <AnimatePresence>{open && <Checkout product={open} balance={balance} onClose={() => setOpen(null)} />}</AnimatePresence>
+        <AnimatePresence>{open && <Checkout product={open} balance={balance} buy={buy} onClose={() => setOpen(null)} />}</AnimatePresence>
       </Portal>
     </>
   );
 }
 
-function Checkout({ product, balance, onClose }: { product: Product; balance: Balance; onClose: () => void }) {
+function Checkout({ product, balance, buy, onClose }: { product: Product; balance: Balance; buy: Buy; onClose: () => void }) {
   const router = useRouter();
   const [spend, setSpend] = useState<Balance>(() => autoSpend(balance, product.price) ?? emptyBalance());
   const [error, setError] = useState<string | null>(null);
@@ -139,7 +141,7 @@ function Checkout({ product, balance, onClose }: { product: Product; balance: Ba
 
   const confirm = () =>
     start(async () => {
-      const res = await buyAction(product.id, spend);
+      const res = await buy(product.id, spend);
       if (!res.ok) return setError(res.error);
       setDone(res.message ?? "Done");
       router.refresh();

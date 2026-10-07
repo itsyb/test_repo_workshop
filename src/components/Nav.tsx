@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { logout } from "@/app/actions";
 import { Avatar } from "./Avatar";
 import { Gem } from "./Gem";
 import { EASE } from "./motion";
@@ -21,7 +20,15 @@ function isActive(path: string, href: string) {
   return href === "/" ? path === "/" : path.startsWith(href);
 }
 
-export function Nav({ user }: { user: { id: string; name: string; avatarUrl: string | null; isAdmin: boolean } }) {
+export function Nav({
+  user,
+  onLogout,
+  extraMenu,
+}: {
+  user: { id: string; name: string; avatarUrl: string | null; isAdmin: boolean };
+  onLogout: () => void | Promise<void>;
+  extraMenu?: React.ReactNode;
+}) {
   const path = usePathname();
   const [menu, setMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -103,7 +110,8 @@ export function Nav({ user }: { user: { id: string; name: string; avatarUrl: str
                         Admin
                       </Link>
                     )}
-                    <form action={logout}>
+                    {extraMenu}
+                    <form action={onLogout}>
                       <button className="w-full rounded-xl px-3 py-2 text-left text-sm text-ink-2 hover:bg-white/8 hover:text-ink">
                         Sign out
                       </button>

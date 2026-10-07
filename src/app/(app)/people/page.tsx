@@ -1,7 +1,6 @@
-import { PeopleGrid } from "./PeopleGrid";
-import { SplitHeadline } from "@/components/motion";
 import { prisma } from "@/lib/db";
 import { receivedTotals } from "@/lib/ledger";
+import { PeopleView } from "@/views/SimpleViews";
 
 export default async function PeoplePage() {
   const [people, totals] = await Promise.all([
@@ -12,11 +11,5 @@ export default async function PeoplePage() {
     }),
     receivedTotals(prisma),
   ]);
-  return (
-    <div>
-      <p className="eyebrow mb-3">People</p>
-      <SplitHeadline text="The team behind the gems." className="display mb-10 text-5xl sm:text-6xl" />
-      <PeopleGrid people={people.map((p) => ({ ...p, received: totals.get(p.id) ?? 0 }))} />
-    </div>
-  );
+  return <PeopleView people={people.map((p) => ({ ...p, received: totals.get(p.id) ?? 0 }))} />;
 }

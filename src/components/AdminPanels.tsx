@@ -2,16 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import {
-  adminAwardAction,
-  adminChallengeStatusAction,
-  adminCreateChallengeAction,
-  adminOrderAction,
-  adminProductAction,
-  type ActionResult,
-} from "@/app/actions";
+import type { ActionResult } from "@/lib/errors";
 import { Gem } from "@/components/Gem";
 import { BANK_COLORS, DNA_COLORS, GEM_META, PRODUCT_CATEGORIES, type GemColor } from "@/lib/gems";
+
+type R = Promise<ActionResult>;
+/** Admin operations; the server app passes server actions, the static demo local ones. */
+export type AdminActions = {
+  order: (orderId: string, status: "FULFILLED" | "REJECTED", note?: string) => R;
+  challengeStatus: (id: string, status: "DRAFT" | "ACTIVE" | "CLOSED") => R;
+  createChallenge: (input: { title: string; description: string; emoji: string }) => R;
+  award: (entryId: string, bankColor: string, amount: number, convertTo?: string) => R;
+  saveProduct: (input: ProductInput) => R;
+};
 
 function useAction() {
   const router = useRouter();
@@ -30,16 +33,16 @@ function useAction() {
 
 const Err = ({ error }: { error: string | null }) => (error ? <p className="text-sm text-rose-300">{error}</p> : null);
 
-export function OrderActions({ id }: { id: string }) {
+export function OrderActions({ id, act }: { id: string; act: AdminActions["order"] }) {
   const { pending, error, run } = useAction();
   const [note, setNote] = useState("");
   return (
     <div className="flex flex-wrap items-center gap-2">
       <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (optional)" className="field h-9 w-44 rounded-full py-0 text-sm" />
-      <button className="btn btn-primary btn-sm" disabled={pending} onClick={() => run(() => adminOrderAction(id, "FULFILLED", note))}>
+      <button className="btn btn-primary btn-sm" disabled={pending} onClick={() => run(() => act(id, "FULFILLED", note))}>
         Mark delivered
       </button>
-      <button className="btn btn-ghost btn-sm" disabled={pending} onClick={() => run(() => adminOrderAction(id, "REJECTED", note))}>
+      <button className="btn btn-ghost btn-sm" disabled={pending} onClick={() => run(() => act(id, "REJECTED", note))}>
         Reject & refund
       </button>
       <Err error={error} />
@@ -47,7 +50,7 @@ export function OrderActions({ id }: { id: string }) {
   );
 }
 
-export function NewChallenge() {
+export function NewChallenge({ create }: { create: AdminActions["createChallenge"] }) {
   const { pending, error, run } = useAction();
   const [f, setF] = useState({ title: "", description: "", emoji: "" });
   return (
@@ -59,7 +62,7 @@ export function NewChallenge() {
       </div>
       <textarea value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} placeholder="What counts as a winning entry?" rows={2} className="field resize-none" aria-label="Description" />
       <Err error={error} />
-      <button className="btn btn-primary btn-sm" disabled={pending} onClick={() => run(() => adminCreateChallengeAction(f), () => setF({ title: "", description: "", emoji: "" }))}>
+      <button className="btn btn-primary btn-sm" disabled={pending} onClick={() => run(() => create(f), () => setF({ title: "", description: "", emoji: "" }))}>
         Create as draft
       </button>
     </div>
@@ -72,10 +75,14 @@ export function ChallengeAdmin({
   challenge,
   entries,
   bank,
+  setStatus,
+  award,
 }: {
   challenge: { id: string; title: string; description: string; emoji: string | null; status: string };
   entries: Entry[];
   bank: Record<string, number>;
+  setStatus: AdminActions["challengeStatus"];
+  award: AdminActions["award"];
 }) {
   const { pending, error, run } = useAction();
   const badge = { ACTIVE: "bg-emerald-400/15 text-emerald-300", DRAFT: "bg-white/10 text-ink-2", CLOSED: "bg-white/5 text-ink-3" }[challenge.status];
@@ -92,17 +99,17 @@ export function ChallengeAdmin({
         </div>
         <div className="flex gap-2">
           {challenge.status !== "ACTIVE" && (
-            <button className="btn btn-primary btn-sm" disabled={pending} onClick={() => run(() => adminChallengeStatusAction(challenge.id, "ACTIVE"))}>
+            <button className="btn btn-primary btn-sm" disabled={pending} onClick={() => run(() => setStatus(challenge.id, "ACTIVE"))}>
               Activate
             </button>
           )}
           {challenge.status === "ACTIVE" && (
-            <button className="btn btn-ghost btn-sm" disabled={pending} onClick={() => run(() => adminChallengeStatusAction(challenge.id, "CLOSED"))}>
+            <button className="btn btn-ghost btn-sm" disabled={pending} onClick={() => run(() => setStatus(challenge.id, "CLOSED"))}>
               Close
             </button>
           )}
           {challenge.status === "CLOSED" && (
-            <button className="btn btn-ghost btn-sm" disabled={pending} onClick={() => run(() => adminChallengeStatusAction(challenge.id, "DRAFT"))}>
+            <button className="btn btn-ghost btn-sm" disabled={pending} onClick={() => run(() => setStatus(challenge.id, "DRAFT"))}>
               Back to draft
             </button>
           )}
@@ -127,7 +134,7 @@ export function ChallengeAdmin({
                   🏆 +{e.prizeAmount} <Gem color={e.prizeColor ?? "TRANSPARENT"} size={14} />
                 </span>
               ) : (
-                <AwardForm entryId={e.id} bank={bank} />
+                <AwardForm entryId={e.id} bank={bank} award={award} />
               )}
             </div>
           ))}
@@ -137,7 +144,7 @@ export function ChallengeAdmin({
   );
 }
 
-function AwardForm({ entryId, bank }: { entryId: string; bank: Record<string, number> }) {
+function AwardForm({ entryId, bank, award }: { entryId: string; bank: Record<string, number>; award: AdminActions["award"] }) {
   const { pending, error, run } = useAction();
   const [from, setFrom] = useState<string>(BANK_COLORS.find((c) => bank[c] > 0) ?? "TRANSPARENT");
   const [to, setTo] = useState<string>("PURPLE");
@@ -162,7 +169,7 @@ function AwardForm({ entryId, bank }: { entryId: string; bank: Record<string, nu
             ))}
           </select>
         )}
-        <button className="btn btn-primary btn-sm" disabled={pending} onClick={() => run(() => adminAwardAction(entryId, from, amount, from === "TRANSPARENT" ? to : undefined))}>
+        <button className="btn btn-primary btn-sm" disabled={pending} onClick={() => run(() => award(entryId, from, amount, from === "TRANSPARENT" ? to : undefined))}>
           Award
         </button>
       </div>
@@ -171,7 +178,7 @@ function AwardForm({ entryId, bank }: { entryId: string; bank: Record<string, nu
   );
 }
 
-type ProductInput = {
+export type ProductInput = {
   id?: string;
   name: string;
   description: string;
@@ -182,7 +189,7 @@ type ProductInput = {
   active: boolean;
 };
 
-export function ProductEditor({ product }: { product?: ProductInput }) {
+export function ProductEditor({ product, save }: { product?: ProductInput; save: AdminActions["saveProduct"] }) {
   const { pending, error, run } = useAction();
   const blank: ProductInput = { name: "", description: "", category: "MERCH", price: 5, emoji: "🎁", stock: null, active: true };
   const [p, setP] = useState<ProductInput>(product ?? blank);
@@ -251,7 +258,7 @@ export function ProductEditor({ product }: { product?: ProductInput }) {
           disabled={pending}
           onClick={() =>
             run(
-              () => adminProductAction(p),
+              () => save(p),
               () => {
                 setOpen(false);
                 if (!product) setP(blank);

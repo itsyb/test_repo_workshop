@@ -4,11 +4,11 @@ import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
-import { giveAction } from "@/app/actions";
 import { Avatar } from "@/components/Avatar";
 import { Gem } from "@/components/Gem";
 import { EASE } from "@/components/motion";
 import { Portal } from "@/components/Portal";
+import type { ActionResult } from "@/lib/errors";
 import { COMMENT_MAX, COMMENT_MIN, DNA_COLORS, GEM_META, type DnaColor, type GemColor, type GemSource } from "@/lib/gems";
 
 type Person = {
@@ -30,6 +30,7 @@ type Props = {
   people: Person[];
   initialTo?: string;
   initialSource?: GemSource;
+  give: (input: { toId: string; source: GemSource; color: string; comment: string }) => Promise<ActionResult>;
 };
 
 export function GiveFlow(props: Props) {
@@ -70,7 +71,7 @@ export function GiveFlow(props: Props) {
     if (!ready || !source || !recipient) return;
     setError(null);
     startTransition(async () => {
-      const res = await giveAction({ toId: recipient.id, source, color: gemColor, comment });
+      const res = await props.give({ toId: recipient.id, source, color: gemColor, comment });
       if (!res.ok) {
         setError(res.error);
         return;
